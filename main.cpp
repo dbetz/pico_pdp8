@@ -47,7 +47,8 @@ short hello_0200[] = {
 00354, //          354           / l
 00344, //          344           / d
 00241, //          241           / !
-00012, //          012           / newline
+00015, //          015           / CR
+00012, //          012           / LF
 00000  //          0             / End of string
 };
 int hello_count_0200 = sizeof(hello_0200) / sizeof(hello_0200[0]);

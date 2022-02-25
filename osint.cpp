@@ -5,7 +5,7 @@
 
 void serial_putchar(int ch)
 {
-	putchar(ch);
+	putchar_raw(ch);
 }
 
 int serial_getchar()
