@@ -16,6 +16,8 @@ add_executable(pico_pdp8
     pto_iot.cpp
     dsk_iot.cpp
     rk8e_iot.cpp
+    panel_leds.cpp
+    panel_switches.cpp
     osint.cpp
 )
 

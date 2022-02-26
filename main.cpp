@@ -4,6 +4,8 @@
 #include "pico/binary_info.h"
 
 #include "nano8.h"
+#include "panel_leds.h"
+#include "panel_switches.h"
 
 #define HLT 07402
 
@@ -62,6 +64,8 @@ void load(int base, short data[], int count)
 int main(int argc, char *argv[])
 {
     stdio_init_all();
+    
+    init_pidp8i_gpio();
     
     bi_decl(bi_program_description("PDP-8i Simulator"));
     bi_decl(bi_1pin_with_name(LED_PIN, "On-board LED"));

@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 
+#include "osint.h"
+
 #define MEMSIZE (4096 * 8)
 
 #define TTWAIT 10 //2000
@@ -43,10 +45,3 @@ void dsk_clear();
 
 // rk8e_iot.cpp
 void rk8e_iot();
-
-// osint.cpp
-void serial_putchar(int ch);
-int serial_getchar();
-void dsk_seek(unsigned int addr);
-size_t dsk_read(void *buffer, size_t size);
-size_t dsk_write(void *buffer, size_t size);
