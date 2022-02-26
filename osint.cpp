@@ -30,6 +30,11 @@ size_t dsk_write(void *buffer, size_t size)
     return -1;
 }
 
+ms_time_t mstime()
+{
+    return (ms_time_t)to_ms_since_boot(get_absolute_time());
+}
+
 /*
  * Based on PiDP-8i source code
  *
@@ -184,5 +189,46 @@ void update_led_states (uint64_t delay)
         sleep_us (10);
     }
 }
+
+int gss_initted = 0;
+
+//// read_switches /////////////////////////////////////////////////////
+// Iterate through the switch GPIO pins, passing them to the debouncing
+// mechanism above for eventual reporting to the PDP-8 CPU thread.
+
+void read_switches (uint64_t delay)
+{
+    // Save current ms-since-epoch for debouncer.  No point making it
+    // retrieve this value for each switch.
+    ms_time_t now_ms = mstime();
+
+    // Flip columns to input.  Since the internal pull-ups are enabled,
+    // this pulls all switch GPIO pins high that aren't shorted to the
+    // row line by the switch.
+    for (size_t i = 0; i < NCOLS; ++i) {
+        gpio_set_dir(cols[i], false);
+    }
+
+    // Read the switch rows
+    for (size_t i = 0; i < NROWS; ++i) {
+        // Put 0V out on the switch row so that closed switches will
+        // drag its column line down; give it time to settle.
+        gpio_set_dir(rows[i], true);
+        gpio_clr_mask(1 << rows[i]);
+        sleep_us (delay);
+
+        // Read all the switches in this row
+        for (size_t j = 0; j < NCOLS; ++j) {
+            int ss = gpio_get(cols[j]);
+            debounce_switch(i, j, !!ss, now_ms);
+        }
+
+        // Stop sinking current from this row of switches
+        gpio_set_dir(rows[i], false);
+    }
+
+    gss_initted = 1;
+}
+
 
 

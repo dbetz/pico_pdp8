@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
     stdio_init_all();
     
     init_pidp8i_gpio();
+    read_switches(10);
     
     bi_decl(bi_program_description("PDP-8i Simulator"));
     bi_decl(bi_1pin_with_name(LED_PIN, "On-board LED"));

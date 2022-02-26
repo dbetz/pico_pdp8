@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdlib.h>
 #include <stdint.h>
 
 // Number of LED rows and columns on the PiDP-8/I PCB

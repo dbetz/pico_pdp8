@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 // Number of switch rows on the PiDP-8/I PCB
 #define NROWS    3
 
@@ -10,3 +12,8 @@
 // these two flags stay 0.
 extern int swStop, swSingInst;
 
+// Current switch states, as reported by the debouncing algorithm.  Set
+// from the GPIO thread to control the SIMH CPU thread.
+extern uint16_t switchstatus[NROWS];
+
+void read_switches (uint64_t delay);
