@@ -3,9 +3,10 @@
 void serial_putchar(int ch);
 int serial_getchar();
 
-void dsk_seek(unsigned int addr);
-size_t dsk_read(void *buffer, size_t size);
-size_t dsk_write(void *buffer, size_t size);
+int dsk_init(const char *path);
+int dsk_seek(unsigned int addr);
+size_t dsk_read(uint8_t *buffer, size_t size);
+size_t dsk_write(uint8_t *buffer, size_t size);
 
 typedef uint32_t ms_time_t;
 ms_time_t mstime();

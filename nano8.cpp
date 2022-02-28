@@ -177,6 +177,7 @@ void iot()
 		break;
 	case 0740:
 	    rk8e_iot();
+	    break;
 	}
 }
 

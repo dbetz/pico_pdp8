@@ -5,6 +5,10 @@
 #include "panel_leds.h"
 #include "panel_switches.h"
 
+extern "C" {
+    #include "fs9p.h"
+}
+
 void serial_putchar(int ch)
 {
 	putchar_raw(ch);
@@ -16,18 +20,102 @@ int serial_getchar()
 	return ch == PICO_ERROR_TIMEOUT ? -1 : ch;
 }
 
-void dsk_seek(unsigned int addr)
+fs9_file f;
+bool finit = false;
+
+// receive 1 byte
+static unsigned int zdoGet1()
 {
+    int c;
+    do {
+        c = serial_getchar();
+    } while (c < 0);
+    return c;
 }
 
-size_t dsk_read(void *buffer, size_t size)
+// receive an unsigned long
+static unsigned int zdoGet4()
 {
+    unsigned r;
+    r = zdoGet1();
+    r = r | (zdoGet1() << 8);
+    r = r | (zdoGet1() << 16);
+    r = r | (zdoGet1() << 24);
+    return r;
+}
+
+// send a buffer to the host
+// then receive a reply
+// returns the length of the reply, which is also the first
+// longword in the buffer
+//
+// startbuf is that start of the buffer (used for both send and
+// receive); endbuf is the end of data to send; maxlen is maximum
+// size
+static int plain_sendrecv(uint8_t *startbuf, uint8_t *endbuf, int maxlen)
+{
+    int len = endbuf - startbuf;
+    uint8_t *buf = startbuf;
+    int i = 0;
+    int left;
+    unsigned flags;
+
+    startbuf[0] = len & 0xff;
+    startbuf[1] = (len>>8) & 0xff;
+    startbuf[2] = (len>>16) & 0xff;
+    startbuf[3] = (len>>24) & 0xff;
+
+    if (len <= 4) {
+        return -1; // not a valid message
+    }
+    // loadp2's server looks for magic start sequence of $FF, $01
+    serial_putchar(0xff);
+    serial_putchar(0x01);
+    while (len>0) {
+        serial_putchar(*buf++);
+        --len;
+    }
+    len = zdoGet4();
+    startbuf[0] = len & 0xff;
+    startbuf[1] = (len>>8) & 0xff;
+    startbuf[2] = (len>>16) & 0xff;
+    startbuf[3] = (len>>24) & 0xff;
+    buf = startbuf+4;
+    left = len - 4;
+    while (left > 0 && i < maxlen) {
+        buf[i++] = zdoGet1();
+        --left;
+    }
+    return len;
+}
+
+int dsk_init(const char *path)
+{
+    if (fs_init(plain_sendrecv) == 0) {
+        if (fs_open(&f, path, FS_MODE_RDWR) == 0) {
+            finit = true;
+            return 0;
+        }
+    }
     return -1;
 }
 
-size_t dsk_write(void *buffer, size_t size)
+int dsk_seek(unsigned int addr)
 {
-    return -1;
+    //printf("seek %u\n", addr);
+    return finit ? fs_seek(&f, (uint64_t)addr) : -1;
+}
+
+size_t dsk_read(uint8_t *buffer, size_t size)
+{
+    //printf("read %d\n", size);
+    return finit ? fs_read(&f, buffer, size) : -1;
+}
+
+size_t dsk_write(uint8_t *buffer, size_t size)
+{
+    //printf("write %d\n", size);
+    return finit ? fs_write(&f, buffer, size) : -1;
 }
 
 ms_time_t mstime()
@@ -85,21 +173,21 @@ static uint8_t rows[NROWS] = {16, 17, 18};
 void turn_on_pidp8i_leds ()
 {
     for (size_t row = 0; row < NLEDROWS; ++row) {
-        gpio_set_dir (ledrows[row], false);
+        gpio_set_dir (ledrows[row], GPIO_IN);
         gpio_clr_mask(1 << ledrows[row]);
     }
     for (size_t col = 0; col < NCOLS; ++col) {
-        gpio_set_dir (cols[col], false);
+        gpio_set_dir (cols[col], GPIO_IN);
     }
 }
 
 void turn_off_pidp8i_leds ()
 {
     for (size_t col = 0; col < NCOLS; ++col) {
-        gpio_set_dir (cols[col], true);
+        gpio_set_dir (cols[col], GPIO_OUT);
     }
     for (size_t row = 0; row < NLEDROWS; ++row) {
-        gpio_set_dir (ledrows[row], false);
+        gpio_set_dir (ledrows[row], GPIO_IN);
     }
 }
 
@@ -124,7 +212,7 @@ void init_pidp8i_gpio (void)
     // Set GPIO pins to their starting state
     turn_on_pidp8i_leds ();
     for (size_t i = 0; i < NROWS; i++) {       // Define rows as input
-        gpio_set_dir (rows[i], false);
+        gpio_set_dir (rows[i], GPIO_IN);
     }
     
     // Set pull-up's
@@ -175,15 +263,15 @@ void update_led_states (uint64_t delay)
         gpio_clr_mask(clrMask);
 
         // Toggle this LED row on
-        gpio_set_dir (ledrows[row], false);
+        gpio_set_dir (ledrows[row], GPIO_IN);
         gpio_set_mask(1 << ledrows[row]);
-        gpio_set_dir (ledrows[row], true);
+        gpio_set_dir (ledrows[row], GPIO_OUT);
 
         sleep_us (delay);
 
         // Toggle this LED row off
         gpio_clr_mask(1 << ledrows[row]); // superstition
-        gpio_set_dir (ledrows[row], false);
+        gpio_set_dir (ledrows[row], GPIO_IN);
 
         // Small delay to reduce UDN2981 ghosting
         sleep_us (10);
@@ -206,14 +294,14 @@ void read_switches (uint64_t delay)
     // this pulls all switch GPIO pins high that aren't shorted to the
     // row line by the switch.
     for (size_t i = 0; i < NCOLS; ++i) {
-        gpio_set_dir(cols[i], false);
+        gpio_set_dir(cols[i], GPIO_IN);
     }
 
     // Read the switch rows
     for (size_t i = 0; i < NROWS; ++i) {
         // Put 0V out on the switch row so that closed switches will
         // drag its column line down; give it time to settle.
-        gpio_set_dir(rows[i], true);
+        gpio_set_dir(rows[i], GPIO_OUT);
         gpio_clr_mask(1 << rows[i]);
         sleep_us (delay);
 
@@ -224,7 +312,7 @@ void read_switches (uint64_t delay)
         }
 
         // Stop sinking current from this row of switches
-        gpio_set_dir(rows[i], false);
+        gpio_set_dir(rows[i], GPIO_IN);
     }
 
     gss_initted = 1;

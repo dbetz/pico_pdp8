@@ -55,10 +55,19 @@ short hello_0200[] = {
 };
 int hello_count_0200 = sizeof(hello_0200) / sizeof(hello_0200[0]);
 
+short os8_7750[] = {
+07600,
+06603,
+06622,
+05352,
+05752,
+};
+int os8_count_7750 = sizeof(os8_7750) / sizeof(os8_7750[0]);
+
 void load(int base, short data[], int count)
 {
-	for (int i = 0; i < count; ++i)
-	    mem[base + i] = data[i];
+    for (int i = 0; i < count; ++i)
+        mem[base + i] = data[i];
 }
 
 int main(int argc, char *argv[])
@@ -75,32 +84,45 @@ int main(int argc, char *argv[])
     gpio_set_dir(LED_PIN, GPIO_OUT);
     gpio_put(LED_PIN, 1);
     
-    sleep_ms(4000);
-
+    while (serial_getchar() != '\r')
+        ;
+    
     printf("PDP-8i Simulator\n");
     
-    for (int i = 0; i < MEMSIZE; ++i)
-		mem[i] = HLT;
-	
-    while (1) {
-    
-        load(00200, simple_0200, simple_count_0200);
-        start(00200);
-    
-        while (cycl())
-            ;
-        
-        printf("pc %04o, acc %04o, mem[0207] %04o\n", pc, acc, mem[00207] & 07777);
-    
-        load(00010, hello_0010, hello_count_0010);
-        load(00200, hello_0200, hello_count_0200);
-        start(00200);
-    
-        while (cycl())
-            ;
-        
-        printf("pc %04o, acc %04o\n", pc, acc);
+    if (dsk_init("df32_os8_4p.dsk") == 0) {
+        printf("filesystem mounted\n");
     }
+
+    for (int i = 0; i < MEMSIZE; ++i)
+        mem[i] = HLT;
+    
+    load(00200, simple_0200, simple_count_0200);
+    start(00200);
+
+    while (cycl())
+        ;
+    
+    printf("pc %04o, acc %04o, mem[0207] %04o\n", pc, acc, mem[00207] & 07777);
+
+    load(00010, hello_0010, hello_count_0010);
+    load(00200, hello_0200, hello_count_0200);
+    start(00200);
+
+    while (cycl())
+        ;
+    
+    printf("pc %04o, acc %04o\n", pc, acc);
+    
+	load(07750, os8_7750, os8_count_7750);
+	start(07750);
+	
+    while (cycl())
+        ;
+        
+    printf("OS/8 exited\n");
+    
+    while (1)
+        ;
     
     return 0;
 }
