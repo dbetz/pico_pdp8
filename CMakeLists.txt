@@ -19,6 +19,7 @@ add_executable(pico_pdp8
     panel_leds.cpp
     panel_switches.cpp
     osint.cpp
+    fsint.cpp
     fs9p.c
 )
 
