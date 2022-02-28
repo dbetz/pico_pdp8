@@ -12,6 +12,9 @@ code but the interface to the PiDP/8I front panel is in progress. Also, only the
 IOT instructions are implemented so it will not run OS/8 at present. My priority is to
 get the front panel interface working before diving into the disk interface.
 
-Anyway, my thanks to Oscar and Ian for making their code available!
+The serial filesystem code that supports the DF32 drive emulation is based on code
+by Eric Smith.
+
+Anyway, my thanks to Oscar, Ian, and Eric for making their code available!
 
 David Betz
