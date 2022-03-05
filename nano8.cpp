@@ -28,10 +28,21 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 short pc;
 short acc;
 short inst;
+short ma;
+short mq;
+short intf;
+short ibus;
+short ifl;
+short dfl;
+short ifr;
+short dfr;
+short svr;
+short uflag;
+short usint;
+short intinh;
+
 short mem[MEMSIZE];
 
-static short ma, mq, intf, ibus;
-static short ifl, dfl, ifr, dfr, svr, uflag, usint, intinh;
 static unsigned int tmp;
 static int kcnt = 0;
 

@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "panel_switches.h"
 #include "panel_leds.h"
 #include "osint.h"
@@ -41,9 +43,7 @@ static void report_ss(int row, int col, int ss,
     if (ss) switchstatus[row] |=  mask;
     else    switchstatus[row] &= ~mask;
 
-    #ifdef DEBUG
-        printf("%cSS[%d][%02d] = %d  ", gss_initted ? 'N' : 'I', row, col, ss);
-    #endif
+    printf("%cSS[%d][%02d] = %d \n", gss_initted ? 'N' : 'I', row, col, ss);
 }
 
 //// debounce_switch ///////////////////////////////////////////////////

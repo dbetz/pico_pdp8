@@ -12,6 +12,19 @@
 extern short pc;
 extern short acc;
 extern short inst;
+extern short ma;
+extern short mq;
+extern short intf;
+extern short ibus;
+extern short ifl;
+extern short dfl;
+extern short ifr;
+extern short dfr;
+extern short svr;
+extern short uflag;
+extern short usint;
+extern short intinh;
+
 extern short mem[];
 
 void start(short addr);

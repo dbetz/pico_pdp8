@@ -60,9 +60,29 @@ ms_time_t mstime()
 // 2  maps to PiDP GPIO header pin 23
 // 3  maps to PiDP GPIO header pin 24
 // 28 maps to PiDP GPIO header pin 25
+// 26 maps to PiDP GPIO header pin 19 (the   doesn't provide 26)
 static uint8_t cols[NCOLS] = {13, 12, 11,    10, 9, 8,    7, 6, 5,    4, 15, 14};
 static uint8_t ledrows[NLEDROWS] = {20, 21, 22, 2, 3, 28, 26, 27};
 static uint8_t rows[NROWS] = {16, 17, 18};
+
+void test_panel_led()
+{
+    // Enable GPIO function on all pins
+    for (size_t i = 0; i < NCOLS; i++) {
+        gpio_init(cols[i]);
+        gpio_set_dir(cols[i], GPIO_OUT);
+    }
+    for (size_t i = 0; i < NLEDROWS; i++) {
+        gpio_init(ledrows[i]);
+        gpio_set_dir(ledrows[i], GPIO_OUT);
+    }
+    for (size_t i = 0; i < NLEDROWS; i++) {
+        gpio_put(ledrows[i], 1);
+        for (size_t j = 0; j < NCOLS; j++) {
+            gpio_put(cols[j], 0);
+        }
+    }
+}
 
 //// turn_on/off_pidp8i_leds ///////////////////////////////////////////
 // Set GPIO pins into a state that [dis]connects power to/from the LEDs.
@@ -137,7 +157,8 @@ void init_pidp8i_gpio (void)
 
 void update_led_states (uint64_t delay)
 {
-    uint16_t *pcurr = pdis_paint->curr;
+    //uint16_t *pcurr = pdis_paint->curr;
+    uint16_t *pcurr = pdis_update->curr;
 
     // Override Execute and Run LEDs if the CPU is currently stopped,
     // since we only get set_pidp8i_leds calls while the CPU's running.
@@ -146,9 +167,9 @@ void update_led_states (uint64_t delay)
         pdis_paint->curr[6] &= ~(1 << 7);
     }
 
-    uint32_t setMask = 0;
-    uint32_t clrMask = 0;
     for (size_t row = 0; row < NLEDROWS; ++row) {
+        uint32_t setMask = 0;
+        uint32_t clrMask = 0;
         for (size_t col = 0; col < NCOLS; ++col) {
             if ((pcurr[row] & (1 << col)) == 0) {
                 setMask |= 1 << cols[col];

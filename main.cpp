@@ -70,19 +70,31 @@ void load(int base, short data[], int count)
         mem[base + i] = data[i];
 }
 
+uint32_t sMB = 01111;   // memory buffer
+int32_t sSC = 07777;
+
+int Pause = 1;
+int swStop = 0;
+int swSingInst = 0;
+int resumeFromInstructionLoopExit = 0;
+
+void test_panel_led();
+
 int main(int argc, char *argv[])
 {
     stdio_init_all();
     
     init_pidp8i_gpio();
-    read_switches(10);
     
+  
     bi_decl(bi_program_description("PDP-8i Simulator"));
     bi_decl(bi_1pin_with_name(LED_PIN, "On-board LED"));
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
     gpio_put(LED_PIN, 1);
+    
+    test_panel_led();
     
     while (serial_getchar() != '\r')
         ;
@@ -116,8 +128,15 @@ int main(int argc, char *argv[])
 	load(07750, os8_7750, os8_count_7750);
 	start(07750);
 	
-    while (cycl())
-        ;
+    int sample = 0;
+    while (cycl()) {
+        if (--sample < 0) {
+            set_pidp8i_leds(pc, ma, sMB, inst, acc, mq, ifr, dfr, sSC, intf, Pause);
+            update_led_states(0);
+            read_switches(0);
+            sample = 1000;
+        }
+    }
         
     printf("OS/8 exited\n");
     
