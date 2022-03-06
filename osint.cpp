@@ -60,7 +60,6 @@ ms_time_t mstime()
 // 2  maps to PiDP GPIO header pin 23
 // 3  maps to PiDP GPIO header pin 24
 // 28 maps to PiDP GPIO header pin 25
-// 26 maps to PiDP GPIO header pin 19 (the   doesn't provide 26)
 static uint8_t cols[NCOLS] = {13, 12, 11,    10, 9, 8,    7, 6, 5,    4, 15, 14};
 static uint8_t ledrows[NLEDROWS] = {20, 21, 22, 2, 3, 28, 26, 27};
 static uint8_t rows[NROWS] = {16, 17, 18};
@@ -76,11 +75,13 @@ void test_panel_led()
         gpio_init(ledrows[i]);
         gpio_set_dir(ledrows[i], GPIO_OUT);
     }
+    for (size_t j = 0; j < NCOLS; j++) {
+        gpio_put(cols[j], 0);
+    }
     for (size_t i = 0; i < NLEDROWS; i++) {
         gpio_put(ledrows[i], 1);
-        for (size_t j = 0; j < NCOLS; j++) {
-            gpio_put(cols[j], 0);
-        }
+        sleep_ms(1000);
+        gpio_put(ledrows[i], 0);
     }
 }
 
