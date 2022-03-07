@@ -13,6 +13,11 @@ ms_time_t mstime();
 
 void init_pidp8i_gpio (void);
 void update_led_states (uint64_t delay);
+void swap_displays ();
+
+void test_panel_led_single();
+void test_panel_led_by_rows();
+void test_panel_led_row(int row);
 
 extern int gss_initted;
 void read_switches (uint64_t delay);

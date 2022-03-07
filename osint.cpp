@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "pico/stdlib.h"
 
 #include "nano8.h"
@@ -57,14 +58,14 @@ ms_time_t mstime()
  * by the other gpio-* modules, from the GPIO thread.
 */
 
-// 2  maps to PiDP GPIO header pin 23
-// 3  maps to PiDP GPIO header pin 24
-// 28 maps to PiDP GPIO header pin 25
+// Pico pin  2 maps to PiDP GPIO header pin 23
+// Pico pin  3 maps to PiDP GPIO header pin 24
+// Pico pin 28 maps to PiDP GPIO header pin 25
 static uint8_t cols[NCOLS] = {13, 12, 11,    10, 9, 8,    7, 6, 5,    4, 15, 14};
-static uint8_t ledrows[NLEDROWS] = {20, 21, 22, 2, 3, 28, 26, 27};
+static uint8_t ledrows[NLEDROWS] = {20, 21, 22, 28, 2, 3, 26, 27};
 static uint8_t rows[NROWS] = {16, 17, 18};
 
-void test_panel_led()
+void test_panel_led_single()
 {
     // Enable GPIO function on all pins
     for (size_t i = 0; i < NCOLS; i++) {
@@ -75,14 +76,68 @@ void test_panel_led()
         gpio_init(ledrows[i]);
         gpio_set_dir(ledrows[i], GPIO_OUT);
     }
+    
+    // set all of the column pins to low
+    for (size_t j = 0; j < NCOLS; j++) {
+        gpio_put(cols[j], 1);
+    }
+    
+    // light each LED individually
+    for (size_t i = 0; i < NLEDROWS; i++) {
+        gpio_put(ledrows[i], 1);
+        for (size_t j = 0; j < NCOLS; j++) {
+            gpio_put(cols[j], 0);
+            sleep_ms(125);
+            gpio_put(cols[j], 1);
+        }
+        gpio_put(ledrows[i], 0);
+    }
+}
+
+void test_panel_led_by_rows()
+{
+    // Enable GPIO function on all pins
+    for (size_t i = 0; i < NCOLS; i++) {
+        gpio_init(cols[i]);
+        gpio_set_dir(cols[i], GPIO_OUT);
+    }
+    for (size_t i = 0; i < NLEDROWS; i++) {
+        gpio_init(ledrows[i]);
+        gpio_set_dir(ledrows[i], GPIO_OUT);
+    }
+    
+    // set all of the column pins to low
     for (size_t j = 0; j < NCOLS; j++) {
         gpio_put(cols[j], 0);
     }
+    
+    // light each row individually
     for (size_t i = 0; i < NLEDROWS; i++) {
         gpio_put(ledrows[i], 1);
-        sleep_ms(1000);
+        sleep_ms(500);
         gpio_put(ledrows[i], 0);
     }
+}
+
+void test_panel_led_row(int row)
+{
+    // Enable GPIO function on all pins
+    for (size_t i = 0; i < NCOLS; i++) {
+        gpio_init(cols[i]);
+        gpio_set_dir(cols[i], GPIO_OUT);
+    }
+    for (size_t i = 0; i < NLEDROWS; i++) {
+        gpio_init(ledrows[i]);
+        gpio_set_dir(ledrows[i], GPIO_OUT);
+    }
+    
+    // set all of the column pins to low
+    for (size_t j = 0; j < NCOLS; j++) {
+        gpio_put(cols[j], 0);
+    }
+    
+    // light the requested row
+    gpio_put(ledrows[row], 1);
 }
 
 //// turn_on/off_pidp8i_leds ///////////////////////////////////////////
@@ -150,7 +205,6 @@ void init_pidp8i_gpio (void)
     }
 }
 
-
 //// update_led_states /////////////////////////////////////////////////
 // Generic front panel LED updater used by NLS full time and by ILS
 // while the CPU is in STOP mode.  Just uses the paint-from display's
@@ -158,8 +212,7 @@ void init_pidp8i_gpio (void)
 
 void update_led_states (uint64_t delay)
 {
-    //uint16_t *pcurr = pdis_paint->curr;
-    uint16_t *pcurr = pdis_update->curr;
+    uint16_t *pcurr = pdis_paint->curr;
 
     // Override Execute and Run LEDs if the CPU is currently stopped,
     // since we only get set_pidp8i_leds calls while the CPU's running.
@@ -195,6 +248,21 @@ void update_led_states (uint64_t delay)
 
         // Small delay to reduce UDN2981 ghosting
         sleep_us (10);
+    }
+}
+
+void swap_displays ()
+{
+    if (!swStop && !swSingInst) {
+        if (pdis_paint == display_bufs + 0) {
+            pdis_paint  = display_bufs + 1;
+            pdis_update = display_bufs + 0;
+        }
+        else {
+            pdis_paint  = display_bufs + 0;
+            pdis_update = display_bufs + 1;
+        }
+        memset (pdis_update, 0, sizeof(display));
     }
 }
 

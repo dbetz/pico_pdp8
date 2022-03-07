@@ -20,6 +20,7 @@ typedef struct display {
     int inst_count;
 } display;
 
+extern display display_bufs[2];
 extern display* pdis_update;   // exported to SIMH CPU thread
 extern display* pdis_paint;    // exported to gpio-*.c
 
